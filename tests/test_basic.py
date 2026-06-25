@@ -10,7 +10,7 @@ import pytest
 import requests
 
 from tests.conftest import requires_server
-from openai import OpenAI
+OpenAI = pytest.importorskip("openai").OpenAI
 
 
 def get_api_key():
@@ -200,7 +200,7 @@ def main():
     """Run all tests."""
     print("Claude Code OpenAI Wrapper - Basic Tests")
     print("=" * 50)
-    print("Make sure the server is running: python main.py")
+    print("Make sure the server is running: poetry run claude-wrapper")
     print("=" * 50)
 
     # Show API key status

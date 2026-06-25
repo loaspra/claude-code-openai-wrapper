@@ -123,13 +123,10 @@ class ClaudeCodeCLI:
                 if model:
                     options.model = model
 
-                # Set system prompt - CLAUDE AGENT SDK STRUCTURED FORMAT
-                # Use structured format as per SDK documentation
                 if system_prompt:
-                    options.system_prompt = {"type": "text", "text": system_prompt}
+                    options.system_prompt = system_prompt
                 else:
-                    # Use Claude Code preset to maintain expected behavior
-                    options.system_prompt = {"type": "preset", "preset": "claude_code"}
+                    options.system_prompt = "claude_code"
 
                 # Set tool restrictions
                 if allowed_tools:

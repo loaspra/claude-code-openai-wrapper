@@ -26,10 +26,34 @@ class ContentPart(BaseModel):
     text: str
 
 
+class OpenAIToolFunction(BaseModel):
+    name: str
+    description: Optional[str] = None
+    parameters: Dict[str, Any] = Field(default_factory=dict)
+
+
+class OpenAITool(BaseModel):
+    type: Literal["function"] = "function"
+    function: OpenAIToolFunction
+
+
+class OpenAIToolCallFunction(BaseModel):
+    name: str
+    arguments: str
+
+
+class OpenAIToolCall(BaseModel):
+    id: str = Field(default_factory=lambda: f"call_{uuid.uuid4().hex[:24]}")
+    type: Literal["function"] = "function"
+    function: OpenAIToolCallFunction
+
+
 class Message(BaseModel):
-    role: Literal["system", "user", "assistant"]
-    content: Union[str, List[ContentPart]]
+    role: Literal["system", "user", "assistant", "tool"]
+    content: Optional[Union[str, List[ContentPart]]] = None
     name: Optional[str] = None
+    tool_call_id: Optional[str] = None
+    tool_calls: Optional[List[OpenAIToolCall]] = None
 
     @model_validator(mode="after")
     def normalize_content(self):
@@ -73,13 +97,8 @@ class ChatCompletionRequest(BaseModel):
     frequency_penalty: Optional[float] = Field(default=0, ge=-2, le=2)
     logit_bias: Optional[Dict[str, float]] = None
     user: Optional[str] = None
-    session_id: Optional[str] = Field(
-        default=None, description="Optional session ID for conversation continuity"
-    )
-    enable_tools: Optional[bool] = Field(
-        default=False,
-        description="Enable Claude Code tools (Read, Write, Bash, etc.) - disabled by default for OpenAI compatibility",
-    )
+    tools: Optional[List[OpenAITool]] = None
+    tool_choice: Optional[Union[Literal["auto", "none", "required"], Dict[str, Any]]] = None
     stream_options: Optional[StreamOptions] = Field(
         default=None, description="Options for streaming responses"
     )
@@ -206,7 +225,7 @@ class ChatCompletionRequest(BaseModel):
 class Choice(BaseModel):
     index: int
     message: Message
-    finish_reason: Optional[Literal["stop", "length", "content_filter", "null"]] = None
+    finish_reason: Optional[Literal["stop", "length", "content_filter", "tool_calls", "null"]] = None
 
 
 class Usage(BaseModel):
@@ -255,166 +274,6 @@ class ErrorResponse(BaseModel):
     error: ErrorDetail
 
 
-class SessionInfo(BaseModel):
-    session_id: str
-    created_at: datetime
-    last_accessed: datetime
-    message_count: int
-    expires_at: datetime
-
-
-class SessionListResponse(BaseModel):
-    sessions: List[SessionInfo]
-    total: int
-
-
-class ToolMetadataResponse(BaseModel):
-    """Response model for tool metadata."""
-
-    name: str
-    description: str
-    category: str
-    parameters: Dict[str, str]
-    examples: List[str]
-    is_safe: bool
-    requires_network: bool
-
-
-class ToolListResponse(BaseModel):
-    """Response model for listing all tools."""
-
-    tools: List[ToolMetadataResponse]
-    total: int
-
-
-class ToolConfigurationResponse(BaseModel):
-    """Response model for tool configuration."""
-
-    allowed_tools: Optional[List[str]] = None
-    disallowed_tools: Optional[List[str]] = None
-    effective_tools: List[str]
-    created_at: datetime
-    updated_at: datetime
-
-
-class ToolConfigurationRequest(BaseModel):
-    """Request model for updating tool configuration."""
-
-    allowed_tools: Optional[List[str]] = None
-    disallowed_tools: Optional[List[str]] = None
-    session_id: Optional[str] = Field(
-        default=None, description="Optional session ID for per-session configuration"
-    )
-
-
-class ToolValidationResponse(BaseModel):
-    """Response model for tool validation."""
-
-    valid: Dict[str, bool]
-    invalid_tools: List[str]
-
-
-class MCPServerConfigRequest(BaseModel):
-    """Request model for registering an MCP server."""
-
-    name: str
-    command: str
-    args: List[str] = Field(default_factory=list)
-    env: Optional[Dict[str, str]] = None
-    description: str = ""
-    enabled: bool = True
-
-    @field_validator("name")
-    @classmethod
-    def validate_name(cls, v: str) -> str:
-        """Validate MCP server name."""
-        if not v or not v.strip():
-            raise ValueError("Server name cannot be empty")
-        if len(v) > 100:
-            raise ValueError("Server name too long (max 100 characters)")
-        # Allow alphanumeric, hyphens, underscores, and dots
-        if not all(c.isalnum() or c in "-_." for c in v):
-            raise ValueError(
-                "Server name must contain only alphanumeric characters, hyphens, underscores, and dots"
-            )
-        return v.strip()
-
-    @field_validator("command")
-    @classmethod
-    def validate_command(cls, v: str) -> str:
-        """Validate MCP server command."""
-        if not v or not v.strip():
-            raise ValueError("Command cannot be empty")
-        if len(v) > 500:
-            raise ValueError("Command path too long (max 500 characters)")
-        return v.strip()
-
-
-class MCPServerInfoResponse(BaseModel):
-    """Response model for MCP server information."""
-
-    name: str
-    command: str
-    args: List[str]
-    description: str
-    enabled: bool
-    connected: bool
-    tools_count: int = 0
-    resources_count: int = 0
-    prompts_count: int = 0
-
-
-class MCPServersListResponse(BaseModel):
-    """Response model for listing MCP servers."""
-
-    servers: List[MCPServerInfoResponse]
-    total: int
-
-
-class MCPConnectionRequest(BaseModel):
-    """Request model for connecting to an MCP server."""
-
-    server_name: str
-
-    @field_validator("server_name")
-    @classmethod
-    def validate_server_name(cls, v: str) -> str:
-        """Validate MCP server name."""
-        if not v or not v.strip():
-            raise ValueError("Server name cannot be empty")
-        if len(v) > 100:
-            raise ValueError("Server name too long (max 100 characters)")
-        return v.strip()
-
-
-class MCPToolCallRequest(BaseModel):
-    """Request model for calling an MCP tool."""
-
-    server_name: str
-    tool_name: str
-    arguments: Dict[str, Any] = Field(default_factory=dict)
-
-    @field_validator("server_name")
-    @classmethod
-    def validate_server_name(cls, v: str) -> str:
-        """Validate MCP server name."""
-        if not v or not v.strip():
-            raise ValueError("Server name cannot be empty")
-        if len(v) > 100:
-            raise ValueError("Server name too long (max 100 characters)")
-        return v.strip()
-
-    @field_validator("tool_name")
-    @classmethod
-    def validate_tool_name(cls, v: str) -> str:
-        """Validate MCP tool name."""
-        if not v or not v.strip():
-            raise ValueError("Tool name cannot be empty")
-        if len(v) > 200:
-            raise ValueError("Tool name too long (max 200 characters)")
-        return v.strip()
-
-
 # ============================================================================
 # Anthropic API Compatible Models (for /v1/messages endpoint)
 # ============================================================================
@@ -427,11 +286,40 @@ class AnthropicTextBlock(BaseModel):
     text: str
 
 
+class AnthropicToolUseBlock(BaseModel):
+    """Anthropic tool_use content block."""
+
+    type: Literal["tool_use"] = "tool_use"
+    id: str = Field(default_factory=lambda: f"toolu_{uuid.uuid4().hex[:24]}")
+    name: str
+    input: Dict[str, Any] = Field(default_factory=dict)
+
+
+class AnthropicToolResultBlock(BaseModel):
+    """Anthropic tool_result content block."""
+
+    type: Literal["tool_result"] = "tool_result"
+    tool_use_id: str
+    content: Union[str, List[AnthropicTextBlock]]
+    is_error: Optional[bool] = None
+
+
+AnthropicContentBlock = Union[AnthropicTextBlock, AnthropicToolUseBlock, AnthropicToolResultBlock]
+
+
+class AnthropicTool(BaseModel):
+    """Anthropic Messages API tool definition."""
+
+    name: str
+    description: Optional[str] = None
+    input_schema: Dict[str, Any] = Field(default_factory=dict)
+
+
 class AnthropicMessage(BaseModel):
     """Anthropic message format."""
 
     role: Literal["user", "assistant"]
-    content: Union[str, List[AnthropicTextBlock]]
+    content: Union[str, List[AnthropicContentBlock]]
 
 
 class AnthropicMessagesRequest(BaseModel):
@@ -447,6 +335,8 @@ class AnthropicMessagesRequest(BaseModel):
     stop_sequences: Optional[List[str]] = None
     stream: Optional[bool] = False
     metadata: Optional[Dict[str, Any]] = None
+    tools: Optional[List[AnthropicTool]] = None
+    tool_choice: Optional[Union[Literal["auto", "any"], Dict[str, Any]]] = None
 
     def to_openai_messages(self) -> List[Message]:
         """Convert Anthropic messages to OpenAI format."""
@@ -476,8 +366,8 @@ class AnthropicMessagesResponse(BaseModel):
     id: str = Field(default_factory=lambda: f"msg_{uuid.uuid4().hex[:24]}")
     type: Literal["message"] = "message"
     role: Literal["assistant"] = "assistant"
-    content: List[AnthropicTextBlock]
+    content: List[Union[AnthropicTextBlock, AnthropicToolUseBlock]]
     model: str
-    stop_reason: Optional[Literal["end_turn", "max_tokens", "stop_sequence"]] = "end_turn"
+    stop_reason: Optional[Literal["end_turn", "max_tokens", "stop_sequence", "tool_use"]] = "end_turn"
     stop_sequence: Optional[str] = None
     usage: AnthropicUsage

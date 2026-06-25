@@ -1,70 +1,7 @@
-"""
-Constants and configuration for Claude Code OpenAI Wrapper.
-
-Single source of truth for tool names, models, and other configuration values.
-
-Usage Examples:
-    # Check if a model is supported
-    from src.constants import CLAUDE_MODELS
-    if model_name in CLAUDE_MODELS:
-        # proceed with request
-
-    # Get default allowed tools
-    from src.constants import DEFAULT_ALLOWED_TOOLS
-    options = {"allowed_tools": DEFAULT_ALLOWED_TOOLS}
-
-    # Use rate limits in FastAPI
-    from src.constants import RATE_LIMIT_CHAT
-    @limiter.limit(f"{RATE_LIMIT_CHAT}/minute")
-    async def chat_endpoint(): ...
-
-Note:
-    - Tool configurations are managed by ToolManager (see tool_manager.py)
-    - Model validation uses graceful degradation (warns but allows unknown models)
-    - Rate limits can be overridden via environment variables
-"""
+"""Constants and configuration for Claude Code OpenAI Wrapper."""
 
 import os
 from typing import Optional
-
-# Claude Agent SDK Tool Names
-# These are the built-in tools available in the Claude Agent SDK
-# See: https://docs.anthropic.com/en/docs/claude-code/sdk
-CLAUDE_TOOLS = [
-    "Task",  # Launch agents for complex tasks
-    "Bash",  # Execute bash commands
-    "Glob",  # File pattern matching
-    "Grep",  # Search file contents
-    "Read",  # Read files
-    "Edit",  # Edit files
-    "Write",  # Write files
-    "NotebookEdit",  # Edit Jupyter notebooks
-    "WebFetch",  # Fetch web content
-    "TodoWrite",  # Manage todo lists
-    "WebSearch",  # Search the web
-    "BashOutput",  # Get bash output
-    "KillShell",  # Kill bash shells
-    "Skill",  # Execute skills
-    "SlashCommand",  # Execute slash commands
-]
-
-# Default tools to allow when tools are enabled
-# Subset of CLAUDE_TOOLS that are safe and commonly used
-DEFAULT_ALLOWED_TOOLS = [
-    "Read",
-    "Glob",
-    "Grep",
-    "Bash",
-    "Write",
-    "Edit",
-]
-
-# Tools to disallow by default (potentially dangerous or slow)
-DEFAULT_DISALLOWED_TOOLS = [
-    "Task",  # Can spawn sub-agents
-    "WebFetch",  # External network access
-    "WebSearch",  # External network access
-]
 
 # Claude Models
 # Static fallback models exposed by /v1/models and accepted by validation when

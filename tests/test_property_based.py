@@ -6,7 +6,12 @@ These tests generate random inputs to find edge cases that manual testing might 
 """
 
 import pytest
-from hypothesis import given, strategies as st, settings, assume
+hypothesis = pytest.importorskip("hypothesis")
+strategies = pytest.importorskip("hypothesis.strategies")
+given = hypothesis.given
+st = strategies
+settings = hypothesis.settings
+assume = hypothesis.assume
 
 from src.message_adapter import MessageAdapter
 from src.parameter_validator import ParameterValidator

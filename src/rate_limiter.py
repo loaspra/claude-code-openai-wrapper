@@ -1,10 +1,18 @@
 import os
 from typing import Optional
-from slowapi import Limiter
-from slowapi.util import get_remote_address
-from slowapi.errors import RateLimitExceeded
 from fastapi import Request
 from fastapi.responses import JSONResponse
+
+try:
+    from slowapi import Limiter
+    from slowapi.util import get_remote_address
+    from slowapi.errors import RateLimitExceeded
+except ImportError:  # pragma: no cover - exercised when optional dependency is absent
+    Limiter = None
+    RateLimitExceeded = Exception
+
+    def get_remote_address(request: Request) -> str:
+        return request.client.host if request.client else "unknown"
 
 
 def get_rate_limit_key(request: Request) -> str:
@@ -14,6 +22,9 @@ def get_rate_limit_key(request: Request) -> str:
 
 def create_rate_limiter() -> Optional[Limiter]:
     """Create and configure the rate limiter based on environment variables."""
+    if Limiter is None:
+        return None
+
     rate_limit_enabled = os.getenv("RATE_LIMIT_ENABLED", "true").lower() in (
         "true",
         "1",
