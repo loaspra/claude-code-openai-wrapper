@@ -343,6 +343,7 @@ class AnthropicMessagesRequest(BaseModel):
             ]
             self.system = "\n".join(parts) if parts else None
         return self
+
     temperature: Optional[float] = Field(default=1.0, ge=0, le=1)
     top_p: Optional[float] = Field(default=None, ge=0, le=1)
     top_k: Optional[int] = Field(default=None, ge=0)
