@@ -779,7 +779,9 @@ async def chat_completions(
 
             tool_prompt = build_openai_tool_prompt(request_body.tools, request_body.tool_choice)
             if tool_prompt:
-                system_prompt = f"{system_prompt}\n\n{tool_prompt}" if system_prompt else tool_prompt
+                system_prompt = (
+                    f"{system_prompt}\n\n{tool_prompt}" if system_prompt else tool_prompt
+                )
 
             tool_context = append_openai_tool_messages(request_body.messages)
             if tool_context:
@@ -826,13 +828,17 @@ async def chat_completions(
             # Filter out tool usage and thinking blocks
             assistant_content = MessageAdapter.filter_content(raw_assistant_content)
 
-            tool_calls = parse_openai_tool_calls(raw_assistant_content) if request_body.tools else []
+            tool_calls = (
+                parse_openai_tool_calls(raw_assistant_content) if request_body.tools else []
+            )
             if tool_calls:
                 assistant_content = None
 
             # Estimate tokens (rough approximation)
             prompt_tokens = MessageAdapter.estimate_tokens(prompt)
-            completion_tokens = MessageAdapter.estimate_tokens(assistant_content or raw_assistant_content)
+            completion_tokens = MessageAdapter.estimate_tokens(
+                assistant_content or raw_assistant_content
+            )
 
             # Create response
             response = ChatCompletionResponse(
@@ -842,7 +848,9 @@ async def chat_completions(
                     Choice(
                         index=0,
                         message=Message(
-                            role="assistant", content=assistant_content, tool_calls=tool_calls or None
+                            role="assistant",
+                            content=assistant_content,
+                            tool_calls=tool_calls or None,
                         ),
                         finish_reason="tool_calls" if tool_calls else "stop",
                     )
@@ -1057,11 +1065,7 @@ async def get_auth_status(request: Request):
         "claude_code_auth": auth_info,
         "server_info": {
             "api_key_required": bool(active_api_key),
-            "api_key_source": (
-                "environment"
-                if os.getenv("API_KEY")
-                else "none"
-            ),
+            "api_key_source": ("environment" if os.getenv("API_KEY") else "none"),
             "version": "1.0.0",
         },
     }

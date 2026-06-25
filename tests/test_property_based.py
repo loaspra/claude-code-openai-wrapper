@@ -6,6 +6,7 @@ These tests generate random inputs to find edge cases that manual testing might 
 """
 
 import pytest
+
 hypothesis = pytest.importorskip("hypothesis")
 strategies = pytest.importorskip("hypothesis.strategies")
 given = hypothesis.given

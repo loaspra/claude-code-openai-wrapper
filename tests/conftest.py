@@ -7,7 +7,6 @@ import requests
 import sys
 import types
 
-
 if "claude_agent_sdk" not in sys.modules:
     fake_sdk = types.ModuleType("claude_agent_sdk")
 

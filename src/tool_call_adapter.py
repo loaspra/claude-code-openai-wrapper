@@ -11,12 +11,13 @@ from src.models import (
     OpenAIToolCallFunction,
 )
 
-
 TOOL_CALL_START = "<tool_call>"
 TOOL_CALL_END = "</tool_call>"
 
 
-def build_openai_tool_prompt(tools: Optional[List[OpenAITool]], tool_choice: Any = None) -> Optional[str]:
+def build_openai_tool_prompt(
+    tools: Optional[List[OpenAITool]], tool_choice: Any = None
+) -> Optional[str]:
     if not tools:
         return None
 

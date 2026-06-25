@@ -225,7 +225,9 @@ class ChatCompletionRequest(BaseModel):
 class Choice(BaseModel):
     index: int
     message: Message
-    finish_reason: Optional[Literal["stop", "length", "content_filter", "tool_calls", "null"]] = None
+    finish_reason: Optional[Literal["stop", "length", "content_filter", "tool_calls", "null"]] = (
+        None
+    )
 
 
 class Usage(BaseModel):
@@ -368,6 +370,8 @@ class AnthropicMessagesResponse(BaseModel):
     role: Literal["assistant"] = "assistant"
     content: List[Union[AnthropicTextBlock, AnthropicToolUseBlock]]
     model: str
-    stop_reason: Optional[Literal["end_turn", "max_tokens", "stop_sequence", "tool_use"]] = "end_turn"
+    stop_reason: Optional[Literal["end_turn", "max_tokens", "stop_sequence", "tool_use"]] = (
+        "end_turn"
+    )
     stop_sequence: Optional[str] = None
     usage: AnthropicUsage

@@ -10,6 +10,7 @@ import pytest
 import requests
 
 from tests.conftest import requires_server
+
 OpenAI = pytest.importorskip("openai").OpenAI
 
 
