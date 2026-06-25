@@ -118,6 +118,10 @@ async def verify_api_key(
     if not active_api_key:
         return True
 
+    header_api_key = request.headers.get("x-api-key")
+    if header_api_key == active_api_key:
+        return True
+
     # Get credentials from Authorization header
     if credentials is None:
         credentials = await security(request)

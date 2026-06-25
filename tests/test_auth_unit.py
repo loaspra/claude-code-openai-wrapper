@@ -2,6 +2,10 @@ import importlib
 import os
 from unittest.mock import patch
 
+import pytest
+from fastapi import HTTPException
+from starlette.requests import Request
+
 
 def reload_auth(env):
     with patch.dict(os.environ, env, clear=True):
@@ -38,3 +42,32 @@ def test_invalid_short_anthropic_key_fails_validation():
 def test_proxy_api_key_can_protect_endpoints():
     auth = reload_auth({"API_KEY": "proxy-key"})
     assert auth.auth_manager.get_api_key() == "proxy-key"
+
+
+@pytest.mark.asyncio
+async def test_verify_api_key_accepts_x_api_key_header():
+    auth = reload_auth({"API_KEY": "proxy-key"})
+    request = Request(
+        {
+            "type": "http",
+            "method": "GET",
+            "path": "/",
+            "headers": [(b"x-api-key", b"proxy-key")],
+        }
+    )
+    assert await auth.verify_api_key(request) is True
+
+
+@pytest.mark.asyncio
+async def test_verify_api_key_rejects_wrong_x_api_key_header():
+    auth = reload_auth({"API_KEY": "proxy-key"})
+    request = Request(
+        {
+            "type": "http",
+            "method": "GET",
+            "path": "/",
+            "headers": [(b"x-api-key", b"wrong")],
+        }
+    )
+    with pytest.raises(HTTPException):
+        await auth.verify_api_key(request)
