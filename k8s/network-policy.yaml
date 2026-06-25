@@ -10,11 +10,18 @@ spec:
   policyTypes:
     - Ingress
   ingress:
-    # Allow every pod in the cluster (single-node legion-server K3S) plus the
-    # Tailscale IPs used for localhost/NodePort access. The proxy no longer
-    # enforces an API key, so this NetworkPolicy is the security boundary.
+    # The proxy no longer enforces an API key, so this NetworkPolicy is the
+    # security boundary. The two consumer classes are split into separate
+    # ingress rules for clarity (both were verified reachable on port 8000).
+    #
+    # Rule 1: every pod in the cluster (single-node legion-server K3S).
     - from:
         - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 8000
+    # Rule 2: Tailscale IPs used for localhost/NodePort access.
+    - from:
         - ipBlock:
             cidr: 100.105.14.50/32
         - ipBlock:
