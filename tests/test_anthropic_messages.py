@@ -57,6 +57,45 @@ class TestAnthropicMessagesModels:
         assert request.max_tokens == 100
         assert request.system == "You are helpful"
 
+    def test_anthropic_messages_request_system_list(self):
+        """Test that system field accepts a list of text blocks and normalizes to string."""
+        from src.models import AnthropicMessagesRequest, AnthropicMessage
+
+        # dict-style blocks (what PydanticAI's Anthropic SDK sends)
+        request = AnthropicMessagesRequest(
+            model="claude-sonnet-4-6",
+            messages=[AnthropicMessage(role="user", content="Hello")],
+            system=[{"type": "text", "text": "You are helpful."}],
+        )
+        assert request.system == "You are helpful."
+
+        # multiple blocks are joined with newline
+        request2 = AnthropicMessagesRequest(
+            model="claude-sonnet-4-6",
+            messages=[AnthropicMessage(role="user", content="Hello")],
+            system=[
+                {"type": "text", "text": "You are helpful."},
+                {"type": "text", "text": "Be concise."},
+            ],
+        )
+        assert request2.system == "You are helpful.\nBe concise."
+
+        # non-text blocks are ignored
+        request3 = AnthropicMessagesRequest(
+            model="claude-sonnet-4-6",
+            messages=[AnthropicMessage(role="user", content="Hello")],
+            system=[{"type": "image", "source": {}}, {"type": "text", "text": "Only this."}],
+        )
+        assert request3.system == "Only this."
+
+        # empty list normalizes to None
+        request4 = AnthropicMessagesRequest(
+            model="claude-sonnet-4-6",
+            messages=[AnthropicMessage(role="user", content="Hello")],
+            system=[],
+        )
+        assert request4.system is None
+
     def test_anthropic_messages_request_to_openai(self):
         """Test conversion from Anthropic to OpenAI message format."""
         from src.models import AnthropicMessagesRequest, AnthropicMessage

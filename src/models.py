@@ -330,7 +330,19 @@ class AnthropicMessagesRequest(BaseModel):
     model: str
     messages: List[AnthropicMessage]
     max_tokens: int = Field(default=4096, description="Maximum tokens to generate")
-    system: Optional[str] = Field(default=None, description="System prompt")
+    system: Optional[Union[str, List[Any]]] = Field(default=None, description="System prompt")
+
+    @model_validator(mode="after")
+    def normalize_system(self):
+        if isinstance(self.system, list):
+            parts = [
+                b.get("text", "") if isinstance(b, dict) else (b.text if hasattr(b, "text") else "")
+                for b in self.system
+                if (isinstance(b, dict) and b.get("type") == "text")
+                or (hasattr(b, "type") and b.type == "text")
+            ]
+            self.system = "\n".join(parts) if parts else None
+        return self
     temperature: Optional[float] = Field(default=1.0, ge=0, le=1)
     top_p: Optional[float] = Field(default=None, ge=0, le=1)
     top_k: Optional[int] = Field(default=None, ge=0)
