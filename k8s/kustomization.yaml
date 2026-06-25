@@ -11,4 +11,4 @@ resources:
 # CI rewrites this tag on every release.
 images:
   - name: ghcr.io/loaspra/claude-code-openai-wrapper
-    newTag: sha-0e7fe8d6
+    newTag: sha-46ccfcc9
