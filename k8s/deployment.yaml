@@ -49,11 +49,6 @@ spec:
               value: /home/claude
             - name: PORT
               value: "8000"
-            - name: API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: claude-provider-api-key
-                  key: API_KEY
             - name: CLAUDE_CWD
               value: /tmp/claude-workspace
             - name: DEFAULT_MODEL

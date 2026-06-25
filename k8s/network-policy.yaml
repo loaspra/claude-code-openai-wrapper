@@ -10,17 +10,11 @@ spec:
   policyTypes:
     - Ingress
   ingress:
+    # Allow every pod in the cluster (single-node legion-server K3S) plus the
+    # Tailscale IPs used for localhost/NodePort access. The proxy no longer
+    # enforces an API key, so this NetworkPolicy is the security boundary.
     - from:
-        - podSelector:
-            matchLabels:
-              app: letta-agent-service
-        - podSelector:
-            matchLabels:
-              app: letta-agent-service-dev
-      ports:
-        - protocol: TCP
-          port: 8000
-    - from:
+        - namespaceSelector: {}
         - ipBlock:
             cidr: 100.105.14.50/32
         - ipBlock:
