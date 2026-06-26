@@ -81,6 +81,26 @@ class StreamOptions(BaseModel):
     )
 
 
+ReasoningEffort = Literal["none", "minimal", "low", "medium", "high", "xhigh"]
+
+REASONING_EFFORT_TO_MAX_THINKING_TOKENS = {
+    "none": 0,
+    "minimal": 1024,
+    "low": 2048,
+    "medium": 10000,
+    "high": 16384,
+    "xhigh": 32768,
+}
+
+
+class ReasoningOptions(BaseModel):
+    """OpenAI Responses-style reasoning options."""
+
+    effort: Optional[ReasoningEffort] = None
+    max_thinking_tokens: Optional[int] = Field(default=None, ge=0, le=50000)
+    budget_tokens: Optional[int] = Field(default=None, ge=0, le=50000)
+
+
 class ChatCompletionRequest(BaseModel):
     model: str = Field(default_factory=get_default_model)
     messages: List[Message]
@@ -97,6 +117,8 @@ class ChatCompletionRequest(BaseModel):
     frequency_penalty: Optional[float] = Field(default=0, ge=-2, le=2)
     logit_bias: Optional[Dict[str, float]] = None
     user: Optional[str] = None
+    reasoning_effort: Optional[ReasoningEffort] = None
+    reasoning: Optional[ReasoningOptions] = None
     tools: Optional[List[OpenAITool]] = None
     tool_choice: Optional[Union[Literal["auto", "none", "required"], Dict[str, Any]]] = None
     stream_options: Optional[StreamOptions] = Field(
@@ -131,6 +153,16 @@ class ChatCompletionRequest(BaseModel):
             max_val = self.max_completion_tokens or self.max_tokens
             info_messages.append(
                 f"max_tokens={max_val} will be mapped to max_thinking_tokens (best-effort)"
+            )
+
+        if self.reasoning_effort:
+            info_messages.append(
+                f"reasoning_effort={self.reasoning_effort} will be mapped to max_thinking_tokens"
+            )
+
+        if self.reasoning and self.reasoning.effort:
+            info_messages.append(
+                f"reasoning.effort={self.reasoning.effort} will be mapped to max_thinking_tokens"
             )
 
         if self.presence_penalty != 0:
@@ -204,15 +236,29 @@ class ChatCompletionRequest(BaseModel):
         if self.model:
             options["model"] = self.model
 
-        # Map max_tokens to max_thinking_tokens (best effort)
-        max_token_value = self.max_completion_tokens or self.max_tokens
-        if max_token_value is not None:
-            # Claude SDK doesn't have exact token limiting, but we can try max_thinking_tokens
-            # This is approximate and may not work as expected
-            options["max_thinking_tokens"] = max_token_value
-            logger.info(
-                f"Mapped max_tokens={max_token_value} to max_thinking_tokens (approximate behavior)"
-            )
+        # Map reasoning controls to Claude's thinking budget. Header-provided
+        # X-Claude-Max-Thinking-Tokens is merged later and intentionally wins.
+        if self.reasoning and self.reasoning.max_thinking_tokens is not None:
+            options["max_thinking_tokens"] = self.reasoning.max_thinking_tokens
+        elif self.reasoning and self.reasoning.budget_tokens is not None:
+            options["max_thinking_tokens"] = self.reasoning.budget_tokens
+        elif self.reasoning and self.reasoning.effort:
+            options["max_thinking_tokens"] = REASONING_EFFORT_TO_MAX_THINKING_TOKENS[
+                self.reasoning.effort
+            ]
+        elif self.reasoning_effort:
+            options["max_thinking_tokens"] = REASONING_EFFORT_TO_MAX_THINKING_TOKENS[
+                self.reasoning_effort
+            ]
+        else:
+            # Legacy compatibility: this was already mapped to thinking budget
+            # before reasoning_effort was supported. Keep as a fallback only.
+            max_token_value = self.max_completion_tokens or self.max_tokens
+            if max_token_value is not None:
+                options["max_thinking_tokens"] = max_token_value
+                logger.info(
+                    f"Mapped max_tokens={max_token_value} to max_thinking_tokens (approximate behavior)"
+                )
 
         # Use user field for session identification if provided
         if self.user:

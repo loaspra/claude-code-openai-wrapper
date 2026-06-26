@@ -604,6 +604,22 @@ class TestClaudeCodeCLIRunCompletion:
             assert captured_options[0].permission_mode == "acceptEdits"
 
     @pytest.mark.asyncio
+    async def test_run_completion_with_max_thinking_tokens(self, cli_instance):
+        """run_completion sets max_thinking_tokens option."""
+        mock_message = {"type": "assistant"}
+        captured_options = []
+
+        async def mock_query(prompt, options):
+            captured_options.append(options)
+            yield mock_message
+
+        with patch("src.claude_cli.query", mock_query):
+            async for _ in cli_instance.run_completion("Hello", max_thinking_tokens=4096):
+                pass
+
+            assert captured_options[0].max_thinking_tokens == 4096
+
+    @pytest.mark.asyncio
     async def test_run_completion_continue_session(self, cli_instance):
         """run_completion sets continue_session option."""
         mock_message = {"type": "assistant"}

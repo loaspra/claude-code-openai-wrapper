@@ -52,6 +52,60 @@ def test_openai_rejects_multiple_choices():
         ChatCompletionRequest(messages=[Message(role="user", content="hi")], n=2)
 
 
+@pytest.mark.parametrize(
+    ("effort", "tokens"),
+    [
+        ("none", 0),
+        ("minimal", 1024),
+        ("low", 2048),
+        ("medium", 10000),
+        ("high", 16384),
+        ("xhigh", 32768),
+    ],
+)
+def test_openai_reasoning_effort_maps_to_max_thinking_tokens(effort, tokens):
+    request = ChatCompletionRequest(
+        messages=[Message(role="user", content="think")],
+        reasoning_effort=effort,
+    )
+    assert request.to_claude_options()["max_thinking_tokens"] == tokens
+
+
+def test_openai_reasoning_effort_beats_legacy_max_tokens_mapping():
+    request = ChatCompletionRequest(
+        messages=[Message(role="user", content="think")],
+        max_tokens=123,
+        reasoning_effort="high",
+    )
+    assert request.to_claude_options()["max_thinking_tokens"] == 16384
+
+
+def test_openai_nested_reasoning_effort_beats_flat_reasoning_effort():
+    request = ChatCompletionRequest(
+        messages=[Message(role="user", content="think")],
+        reasoning_effort="low",
+        reasoning={"effort": "medium"},
+    )
+    assert request.to_claude_options()["max_thinking_tokens"] == 10000
+
+
+def test_openai_nested_reasoning_token_budget_beats_reasoning_effort():
+    request = ChatCompletionRequest(
+        messages=[Message(role="user", content="think")],
+        reasoning_effort="high",
+        reasoning={"max_thinking_tokens": 7777, "effort": "low"},
+    )
+    assert request.to_claude_options()["max_thinking_tokens"] == 7777
+
+
+def test_openai_rejects_invalid_reasoning_effort():
+    with pytest.raises(ValueError):
+        ChatCompletionRequest(
+            messages=[Message(role="user", content="think")],
+            reasoning_effort="extreme",
+        )
+
+
 def test_anthropic_request_accepts_tools_and_tool_results():
     request = AnthropicMessagesRequest(
         model="claude-sonnet-4-6",

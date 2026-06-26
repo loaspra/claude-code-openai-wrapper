@@ -164,6 +164,10 @@ class CompatibilityReporter:
             report["supported_parameters"].append("stream")
         if request.user:
             report["supported_parameters"].append("user (for logging)")
+        if request.reasoning_effort:
+            report["supported_parameters"].append("reasoning_effort")
+        if request.reasoning:
+            report["supported_parameters"].append("reasoning")
 
         # Check unsupported parameters with suggestions
         if request.temperature != 1.0:
@@ -181,7 +185,7 @@ class CompatibilityReporter:
         if request.max_tokens:
             report["unsupported_parameters"].append("max_tokens")
             report["suggestions"].append(
-                "Use max_turns parameter instead to limit conversation length, or use max_thinking_tokens to limit internal reasoning."
+                "Use reasoning_effort or X-Claude-Max-Thinking-Tokens to control internal reasoning."
             )
 
         if request.n > 1:

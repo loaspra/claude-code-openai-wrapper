@@ -104,6 +104,7 @@ class ClaudeCodeCLI:
         session_id: Optional[str] = None,
         continue_session: bool = False,
         permission_mode: Optional[str] = None,
+        max_thinking_tokens: Optional[int] = None,
     ) -> AsyncGenerator[Dict[str, Any], None]:
         """Run Claude Agent using the Python SDK and yield response chunks."""
 
@@ -137,6 +138,9 @@ class ClaudeCodeCLI:
                 # Set permission mode (needed for tool execution in API context)
                 if permission_mode:
                     options.permission_mode = permission_mode
+
+                if max_thinking_tokens is not None:
+                    options.max_thinking_tokens = max_thinking_tokens
 
                 # Handle session continuity
                 if continue_session:

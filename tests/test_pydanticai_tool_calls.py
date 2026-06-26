@@ -115,6 +115,30 @@ def test_openai_chat_completions_accepts_tool_result_messages():
     assert response.json()["choices"][0]["finish_reason"] == "tool_calls"
 
 
+def test_openai_chat_completions_reasoning_header_overrides_body(monkeypatch):
+    captured_kwargs = []
+
+    async def mock_completion(*args, **kwargs):
+        captured_kwargs.append(kwargs)
+        yield {"subtype": "success", "result": "ok"}
+
+    monkeypatch.setattr(main.claude_cli, "run_completion", mock_completion)
+
+    client = TestClient(main.app)
+    response = client.post(
+        "/v1/chat/completions",
+        headers={"X-Claude-Max-Thinking-Tokens": "3000"},
+        json={
+            "model": "claude-sonnet-4-6",
+            "messages": [{"role": "user", "content": "think"}],
+            "reasoning_effort": "high",
+        },
+    )
+
+    assert response.status_code == 200
+    assert captured_kwargs[0]["max_thinking_tokens"] == 3000
+
+
 def test_anthropic_messages_returns_tool_use_blocks():
     client = TestClient(main.app)
     response = client.post(

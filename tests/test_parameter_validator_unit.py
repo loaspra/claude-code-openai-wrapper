@@ -287,6 +287,26 @@ class TestCompatibilityReporter:
         report = CompatibilityReporter.generate_compatibility_report(request)
         assert "user (for logging)" in report["supported_parameters"]
 
+    def test_reasoning_effort_identified_as_supported(self):
+        """reasoning_effort is identified as supported."""
+        request = ChatCompletionRequest(
+            model="claude-sonnet-4-5-20250929",
+            messages=[Message(role="user", content="Hello")],
+            reasoning_effort="high",
+        )
+        report = CompatibilityReporter.generate_compatibility_report(request)
+        assert "reasoning_effort" in report["supported_parameters"]
+
+    def test_nested_reasoning_identified_as_supported(self):
+        """Nested reasoning options are identified as supported."""
+        request = ChatCompletionRequest(
+            model="claude-sonnet-4-5-20250929",
+            messages=[Message(role="user", content="Hello")],
+            reasoning={"effort": "medium"},
+        )
+        report = CompatibilityReporter.generate_compatibility_report(request)
+        assert "reasoning" in report["supported_parameters"]
+
     def test_temperature_unsupported_when_not_default(self):
         """Non-default temperature is flagged as unsupported."""
         request = ChatCompletionRequest(
