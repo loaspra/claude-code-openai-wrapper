@@ -554,7 +554,8 @@ async def generate_streaming_response(
         if claude_options.get("model"):
             ParameterValidator.validate_model(claude_options["model"])
 
-        claude_options["max_turns"] = 1
+        if "max_turns" not in claude_options:
+            claude_options["max_turns"] = 3 if request.tools else 1
 
         # Run Claude Code
         chunks_buffer = []
@@ -804,7 +805,8 @@ async def chat_completions(
             if claude_options.get("model"):
                 ParameterValidator.validate_model(claude_options["model"])
 
-            claude_options["max_turns"] = 1
+            if "max_turns" not in claude_options:
+                claude_options["max_turns"] = 3 if request_body.tools else 1
 
             # Collect all chunks
             chunks = []
@@ -942,7 +944,7 @@ async def anthropic_messages(
             prompt=prompt,
             system_prompt=system_prompt,
             model=request_body.model,
-            max_turns=1,
+            max_turns=3 if request_body.tools else 1,
             stream=False,
         ):
             chunks.append(chunk)

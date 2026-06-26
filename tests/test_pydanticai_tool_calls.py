@@ -139,6 +139,63 @@ def test_openai_chat_completions_reasoning_header_overrides_body(monkeypatch):
     assert captured_kwargs[0]["max_thinking_tokens"] == 3000
 
 
+def test_openai_chat_completions_with_tools_uses_larger_turn_budget(monkeypatch):
+    captured_kwargs = []
+
+    async def mock_completion(*args, **kwargs):
+        captured_kwargs.append(kwargs)
+        yield {"subtype": "success", "result": "ok"}
+
+    monkeypatch.setattr(main.claude_cli, "run_completion", mock_completion)
+
+    client = TestClient(main.app)
+    response = client.post(
+        "/v1/chat/completions",
+        json={
+            "model": "claude-opus-4-8",
+            "messages": [{"role": "user", "content": "call the tool"}],
+            "tools": [
+                {
+                    "type": "function",
+                    "function": {"name": "marker", "parameters": {"type": "object"}},
+                }
+            ],
+        },
+    )
+
+    assert response.status_code == 200
+    assert captured_kwargs[0]["max_turns"] == 3
+
+
+def test_openai_chat_completions_max_turns_header_overrides_tool_default(monkeypatch):
+    captured_kwargs = []
+
+    async def mock_completion(*args, **kwargs):
+        captured_kwargs.append(kwargs)
+        yield {"subtype": "success", "result": "ok"}
+
+    monkeypatch.setattr(main.claude_cli, "run_completion", mock_completion)
+
+    client = TestClient(main.app)
+    response = client.post(
+        "/v1/chat/completions",
+        headers={"X-Claude-Max-Turns": "5"},
+        json={
+            "model": "claude-opus-4-8",
+            "messages": [{"role": "user", "content": "call the tool"}],
+            "tools": [
+                {
+                    "type": "function",
+                    "function": {"name": "marker", "parameters": {"type": "object"}},
+                }
+            ],
+        },
+    )
+
+    assert response.status_code == 200
+    assert captured_kwargs[0]["max_turns"] == 5
+
+
 def test_anthropic_messages_returns_tool_use_blocks():
     client = TestClient(main.app)
     response = client.post(
